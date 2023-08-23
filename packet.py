@@ -1,6 +1,7 @@
 from .sauerconsts import packet_names
 from .utils import packet_dict
 
+
 class Packet(object):
     def __init__(self, type, timestamp, args=[], context={}):
         self.type = type
@@ -21,6 +22,9 @@ class Packet(object):
 
     def __repr__(self):
         return self.__str__()
+
+    def get(self, arg):
+        return self.args.get(arg)
 
     def __getitem__(self, arg):
         return self.args[arg]
@@ -105,28 +109,69 @@ class Packet(object):
             self.var = var
 
         def __eq__(self, value):
-            return {"query": "variable", "variable": self.var, "action": "==", "value": value}
+            return {
+                "query": "variable",
+                "variable": self.var,
+                "action": "==",
+                "value": value,
+            }
 
         def __lt__(self, value):
-            return {"query": "variable", "variable": self.var, "action": "<", "value": value}
+            return {
+                "query": "variable",
+                "variable": self.var,
+                "action": "<",
+                "value": value,
+            }
 
         def __le__(self, value):
-            return {"query": "variable", "variable": self.var, "action": "<=", "value": value}
+            return {
+                "query": "variable",
+                "variable": self.var,
+                "action": "<=",
+                "value": value,
+            }
 
         def __gt__(self, value):
-            return {"query": "variable", "variable": self.var, "action": ">", "value": value}
+            return {
+                "query": "variable",
+                "variable": self.var,
+                "action": ">",
+                "value": value,
+            }
 
         def __ge__(self, value):
-            return {"query": "variable", "variable": self.var, "action": ">=", "value": value}
+            return {
+                "query": "variable",
+                "variable": self.var,
+                "action": ">=",
+                "value": value,
+            }
 
         def __ne__(self, value):
-            return {"query": "variable", "variable": self.var, "action": "!=", "value": value}
+            return {
+                "query": "variable",
+                "variable": self.var,
+                "action": "!=",
+                "value": value,
+            }
 
         def select(self, value):
-            return {"query": "variable", "variable": self.var, "action": "select", "value": value}
+            return {
+                "query": "variable",
+                "variable": self.var,
+                "action": "select",
+                "value": value,
+            }
 
         def exclude(self, value):
-            return {"query": "variable", "variable": self.var, "action": "exclude", "value": value}
+            return {
+                "query": "variable",
+                "variable": self.var,
+                "action": "exclude",
+                "value": value,
+            }
+
 
 class PacketList(object):
     def __init__(self, packets=[]):
@@ -173,6 +218,7 @@ class PacketList(object):
 
         return packet_list_query
 
+
 class PacketListQuery(object):
     def __init__(self, packet_list):
         self.queries = []
@@ -196,7 +242,16 @@ class PacketListQuery(object):
         if query["query"] not in ["type", "time", "cn", "variable"]:
             raise InvalidVariable()
 
-        if query["action"] not in ["==", ">", "<", ">=", "<=", "!=", "select", "exclude"]:
+        if query["action"] not in [
+            "==",
+            ">",
+            "<",
+            ">=",
+            "<=",
+            "!=",
+            "select",
+            "exclude",
+        ]:
             raise InvalidAction()
 
         self.queries.append(query)
@@ -264,7 +319,10 @@ class PacketListQuery(object):
                     variable = packet
 
                     for key in keys:
-                        variable = variable[key]
+                        variable = variable.get(key)
+
+                    if not variable:
+                        continue
 
                     if compare(variable):
                         packets.append(packet)

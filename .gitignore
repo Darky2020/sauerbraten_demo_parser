@@ -1,0 +1,16 @@
+*/**/__pycache__/*
+__pycache__/
+venv/*
+.venv
+
+# misc
+.DS_STORE
+
+# PyRight
+pyrightconfig.json
+
+# PyCharm
+.idea
+
+# VsCode
+.vscode/*

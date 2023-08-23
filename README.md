@@ -2,6 +2,10 @@
 
 <b>Note:</b> this project will not be maintained as it has numerous flaws. A better and more feature complete version will come out some time in the future.<br><br>
 A simple sauerbraten demo parser written in python which has the ability to parse demo files as well as raw demo file bytes both compressed using gzip and uncompressed.<br><br>
+This documentations assumes that you have the library stored in a folder called "sauerbraten_demo_parser" and a python file in a directory above as such:
+- ``main.py``
+- ``/sauerbraten_demo_parser``
+
 Basic setup:
 ```python
 from sauerbraten_demo_parser import DemoParser, Packet
@@ -50,8 +54,8 @@ for packet in packets:
 
 Each member of a ``PacketList`` is a ``Packet`` object which has these fields:
 - ``type``: packet type (such as N_DIED or N_POS), it's an integer. Use the sauerconsts import to simplify working with it.
-- ``timestamp``: an integer, number of milliseconds that has passed since the beginning of the game.
-- ``args``: a dictionary containing the argumets in human readable form. Is unique to each packet type.
+- ``timestamp``: an integer, number of milliseconds that have passed since the beginning of the game.
+- ``args``: a dictionary containing the argumets in a human readable form. Is unique to each packet type.
 
 # Packet filtering
 You can filter a ``PacketList`` by type, timestamp, cn and variable.<br>

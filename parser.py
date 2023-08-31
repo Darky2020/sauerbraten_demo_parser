@@ -883,6 +883,9 @@ class DemoParser(object):
 
         header, error = self.read_header(stream)
 
+        self.packets = []
+        self.current_mode = -1
+
         if error:
             print(f"error parsing demo: {error}")
             return None, error

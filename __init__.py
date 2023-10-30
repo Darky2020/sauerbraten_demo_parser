@@ -1,3 +1,3 @@
 from .parser import DemoParser
-from .parser import DemoList
+from .packet import PacketList
 from .packet import Packet

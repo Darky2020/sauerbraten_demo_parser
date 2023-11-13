@@ -321,7 +321,7 @@ class PacketListQuery(object):
                     for key in keys:
                         variable = variable.get(key)
 
-                    if not variable:
+                    if variable is None:
                         continue
 
                     if compare(variable):

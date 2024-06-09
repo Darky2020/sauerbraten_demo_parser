@@ -2,6 +2,7 @@
 __pycache__/
 venv/*
 .venv
+.mypy_cache
 
 # misc
 .DS_STORE

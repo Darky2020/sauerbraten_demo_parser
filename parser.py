@@ -892,7 +892,7 @@ class DemoParser(object):
 
         if header.file_version != 1:
             print(
-                f"error: unsupported file version (only version 1 is supported)"
+                "error: unsupported file version (only version 1 is supported)"
             )
             return None, "unsupported file version"
 

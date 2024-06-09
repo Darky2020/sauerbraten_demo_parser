@@ -899,10 +899,23 @@ class DemoParser(object):
         stamp, data, error = self.read_packet(stream)
         self.parse_messages(-1, stamp, data, error)
 
+        # Some demos have zero length packets inside the stream for some reason
+        # so we use this mechanism to skip over them
+        EMPTY_PACKET_TRESHOLD = 5
+        empty_packet_count = 0
+
         while stream:
             stamp, data, error = self.read_packet(stream)
+
             if not data:
-                break
+                empty_packet_count += 1
+
+                if empty_packet_count > EMPTY_PACKET_TRESHOLD:
+                    break
+
+                continue
+
+            empty_packet_count = 0
             self.parse_messages(-1, stamp, data, error)
 
         packet_list = PacketList(self.packets)

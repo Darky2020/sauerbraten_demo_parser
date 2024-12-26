@@ -1,17 +1,18 @@
+from .utils import packet_dict, InvalidVariable, InvalidAction
 from .sauerconsts import packet_names
-from .utils import packet_dict
+from typing import Any
 
 
-class Packet(object):
-    def __init__(self, type, timestamp, args=[], context={}):
-        self.type = type
-        self.timestamp = timestamp
-        self.raw_args = args
-        self.args = packet_dict(self)
-        self.context = context
+class Packet:
+    def __init__(self, type: int, timestamp: int, args=[], context=None):
+        self._type: int = type
+        self.timestamp: int = timestamp
+        self.raw_args: list[Any] = args
+        self.args: dict = packet_dict(self)
+        self.context: dict | None = context
 
     def __str__(self):
-        resp = f"Packet({packet_names[self.type]}, timestamp={self.timestamp}, args={self.args}"
+        resp = f"Packet({packet_names[self._type]}, timestamp={self.timestamp}, args={self.args}"
 
         if self.context:
             resp += f", context={self.context}"
@@ -29,7 +30,7 @@ class Packet(object):
     def __getitem__(self, arg):
         return self.args[arg]
 
-    class type(object):
+    class type:
         def __eq__(self, value):
             return {"query": "type", "action": "==", "value": value}
 
@@ -54,7 +55,7 @@ class Packet(object):
         def exclude(self, value):
             return {"query": "type", "action": "exclude", "value": value}
 
-    class time(object):
+    class time:
         def __eq__(self, value):
             return {"query": "time", "action": "==", "value": value}
 
@@ -79,7 +80,7 @@ class Packet(object):
         def exclude(self, value):
             return {"query": "time", "action": "exclude", "value": value}
 
-    class cn(object):
+    class cn:
         def __eq__(self, value):
             return {"query": "cn", "action": "==", "value": value}
 
@@ -104,7 +105,7 @@ class Packet(object):
         def exclude(self, value):
             return {"query": "cn", "action": "exclude", "value": value}
 
-    class variable(object):
+    class variable:
         def __init__(self, var):
             self.var = var
 
@@ -173,15 +174,17 @@ class Packet(object):
             }
 
 
-class PacketList(object):
-    def __init__(self, packets=[]):
-        if type(packets) != list:
+class PacketList:
+    def __init__(self, packets: list[Packet] | Packet = []):
+        self.packets: list[Packet] = []
+
+        if not isinstance(packets, list):
             self.packets = list([packets])
         else:
             self.packets = list(packets)
 
     def __str__(self):
-        resp = f"PacketList(["
+        resp = "PacketList(["
 
         num = len(self.packets)
 
@@ -209,10 +212,13 @@ class PacketList(object):
     def __len__(self):
         return len(self.packets)
 
-    def __getitem__(self, arg):
+    def __getitem__(self, arg) -> Packet:
         return self.packets[arg]
 
-    def where(self, query={}):
+    def __iter__(self):
+        yield from self.packets
+
+    def where(self, query={}) -> "PacketListQuery":
         packet_list_query = PacketListQuery(self)
         packet_list_query.where(query)
 
@@ -220,25 +226,25 @@ class PacketList(object):
 
 
 class PacketListQuery(object):
-    def __init__(self, packet_list):
-        self.queries = []
-        self.packet_list = packet_list
+    def __init__(self, packet_list: PacketList):
+        self.queries: list[dict] = []
+        self.packet_list: PacketList = packet_list
 
-    def first(self):
+    def first(self) -> Packet | None:
         filtered_list = self.select()
         if len(filtered_list) > 0:
             return filtered_list[0]
         else:
             return None
 
-    def last(self):
+    def last(self) -> Packet | None:
         filtered_list = self.select()
         if len(filtered_list) > 0:
             return filtered_list[-1]
         else:
             return None
 
-    def where(self, query):
+    def where(self, query: dict):
         if query["query"] not in ["type", "time", "cn", "variable"]:
             raise InvalidVariable()
 
@@ -258,8 +264,8 @@ class PacketListQuery(object):
 
         return self
 
-    def select(self):
-        packets = []
+    def select(self) -> PacketList:
+        packets: list[Packet] = []
 
         def compare(value):
             if query["action"] == "==":
@@ -289,7 +295,7 @@ class PacketListQuery(object):
         for packet in self.packet_list:
             for query in self.queries:
                 if query["query"] == "type":
-                    if compare(packet.type):
+                    if compare(packet._type):
                         packets.append(packet)
 
                 if query["query"] == "time":

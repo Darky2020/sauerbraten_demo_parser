@@ -3,10 +3,11 @@ import struct
 import math
 
 
-def sauer2unicode(arg):
+def sauer2unicode(arg) -> str:
     result = ""
+
     for i in arg:
-        if type(i) == int:
+        if isinstance(i, int):
             result += unicode_characters[i]
         else:
             result += unicode_characters[int.from_bytes(i, byteorder="little")]
@@ -14,7 +15,7 @@ def sauer2unicode(arg):
     return result
 
 
-def getuint(stream):
+def getuint(stream) -> int:
     n = int.from_bytes(stream.read(1), byteorder="little")
     if n & (1 << 7):
         n += ((int.from_bytes(stream.read(1), byteorder="little")) << 7) - (
@@ -33,7 +34,7 @@ def getuint(stream):
     return n
 
 
-def getint(stream):
+def getint(stream) -> int:
     c = int.from_bytes(stream.read(1), byteorder="little", signed=True)
     if c == -128:
         n = int.from_bytes(stream.read(1), byteorder="little")
@@ -51,11 +52,11 @@ def getint(stream):
         return c
 
 
-def getfloat(stream):
+def getfloat(stream) -> float:
     return struct.unpack("f", stream.read(4))
 
 
-def getstr(stream):
+def getstr(stream) -> str:
     buf = []
     val = int.from_bytes(stream.read(1), byteorder="little")
     while val != 0:
@@ -70,7 +71,7 @@ def clamp(num, min_value, max_value):
     return num
 
 
-def packet_dict(packet):
+def packet_dict(packet) -> dict:
     args = packet.raw_args
 
     res = {}
@@ -748,3 +749,11 @@ def packet_dict(packet):
         res = {"cn": args[0], "jp": args[1]}
 
     return res
+
+
+class InvalidVariable(Exception):
+    pass
+
+
+class InvalidAction(Exception):
+    pass

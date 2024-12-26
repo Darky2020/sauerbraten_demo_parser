@@ -1,7 +1,7 @@
+from .utils import getint, getstr, getuint, getfloat
 from .packet import Packet, PacketList
 from dataclasses import dataclass
 from .sauerconsts import *
-from .utils import *
 import gzip
 import io
 
@@ -20,9 +20,9 @@ class DemoHeader:
     protocol_version: int
 
 
-class DemoParser(object):
+class DemoParser:
     def __init__(self):
-        self.packets = []
+        self.packets: list[Packet] = []
         self.current_mode = -1
 
     def add_packet(self, packet, stamp, args=[], context={}):
@@ -875,7 +875,7 @@ class DemoParser(object):
                 error = f"Couldn't read packet: {packet}"
                 getint(data)
 
-    def parse_raw(self, raw, compressed=True):
+    def parse_raw(self, raw: bytes, compressed: bool = True) -> PacketList:
         if compressed:
             raw = gzip.decompress(raw)
 
@@ -887,14 +887,12 @@ class DemoParser(object):
         self.current_mode = -1
 
         if error:
-            print(f"error parsing demo: {error}")
-            return None, error
+            raise Exception(f"error parsing demo: {error}")
 
         if header.file_version != 1:
-            print(
+            raise Exception(
                 "error: unsupported file version (only version 1 is supported)"
             )
-            return None, "unsupported file version"
 
         stamp, data, error = self.read_packet(stream)
         self.parse_messages(-1, stamp, data, error)
@@ -922,7 +920,7 @@ class DemoParser(object):
 
         return packet_list
 
-    def parse(self, filename):
+    def parse(self, filename: str) -> PacketList:
         stream = gzip.open(filename, "rb")
 
         return self.parse_raw(stream.read(), compressed=False)

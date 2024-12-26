@@ -1,18 +1,21 @@
 # sauerbraten_demo_parser
 
-<b>Note:</b> this project will not be maintained as it has numerous flaws. A better and more feature complete version will come out some time in the future.<br><br>
+~~<b>Note:</b> this project will not be maintained as it has numerous flaws. A better and more feature complete version will come out some time in the future.~~ Nvm lol <br><br>
 A simple sauerbraten demo parser written in python which has the ability to parse demo files as well as raw demo file bytes both compressed using gzip and uncompressed.<br><br>
 This documentations assumes that you have the library stored in a folder called "sauerbraten_demo_parser" and a python file in a directory above as such:
-- ``main.py``
-- ``/sauerbraten_demo_parser``
+
+- `main.py`
+- `/sauerbraten_demo_parser`
 
 Basic setup:
+
 ```python
 from sauerbraten_demo_parser import DemoParser, Packet
 from sauerbraten_demo_parser.sauerconsts import *
 ```
 
 Reading a demo file:
+
 ```python
 from sauerbraten_demo_parser import DemoParser, Packet
 from sauerbraten_demo_parser.sauerconsts import *
@@ -23,6 +26,7 @@ print(packets)
 ```
 
 Reading a demo from a url:
+
 ```python
 from sauerbraten_demo_parser import DemoParser, Packet
 from sauerbraten_demo_parser.sauerconsts import *
@@ -34,7 +38,8 @@ packets = parser.parse_raw(raw_demo, compressed=True) # compressed here means th
 print(packets)
 ```
 
-``packets`` will display like this:
+`packets` will display like this:
+
 ```
 PacketList([
     Packet(N_WELCOME, timestamp=0, args={}),
@@ -45,21 +50,26 @@ PacketList([
 ], packets=123196)
 ```
 
-You can iterate over a ``PacketList`` like you would with a regular list:
+You can iterate over a `PacketList` like you would with a regular list:
+
 ```python
 packets = parser.parse("demofile.dmo")
 for packet in packets:
     print(packet)
 ```
 
-Each member of a ``PacketList`` is a ``Packet`` object which has these fields:
-- ``type``: packet type (such as N_DIED or N_POS), it's an integer. Use the sauerconsts import to simplify working with it.
-- ``timestamp``: an integer, number of milliseconds that have passed since the beginning of the game.
-- ``args``: a dictionary containing the argumets in a human readable form. Is unique to each packet type.
+Each member of a `PacketList` is a `Packet` object which has these fields:
+
+- `type`: packet type (such as N_DIED or N_POS), it's an integer. Use the sauerconsts import to simplify working with it.
+- `timestamp`: an integer, number of milliseconds that have passed since the beginning of the game.
+- `args`: a dictionary containing the argumets in a human readable form. Is unique to each packet type.
 
 # Packet filtering
-You can filter a ``PacketList`` by type, timestamp, cn and variable.<br>
+
+You can filter a `PacketList` by type, timestamp, cn and variable.<br>
+
 - By type:
+
 ```python
 packets = parser.parse("demofile.dmo")
 init_clients = (
@@ -85,6 +95,7 @@ print(first_packets)
 This code will select all the packets that were sent in the very beginning of the demo where everything is initialised.
 
 - By cn (client number):
+
 ```python
 packets = parser.parse("demofile.dmo")
 specific_client_packets = (
@@ -97,6 +108,7 @@ print(specific_client_packets)
 This code will get all the packets that are related to a player with a client number 3. It will include the packets that were sent by that client and packets that are related to that client (such as N_DAMAGE which has both an actor and a target cns).
 
 - By args:
+
 ```python
 packets = parser.parse("demofile.dmo")
 variable_packets = (
@@ -107,26 +119,28 @@ variable_packets = (
 
 This code will get all the packets that have an argument "team" that is equal to "evil". It will ignore the packets that do not have that argument. Note that it does not work with nested arguments.
 <br>
-In the examples above we've only used the ``==`` operator but there are more. The full list is:
-- ``==``
-- ``<``
-- ``<=``
-- ``>``
-- ``>=``
-- ``!=``
+In the examples above we've only used the `==` operator but there are more. The full list is:
 
-(Actually there are two more being ``select`` and ``exclude`` but I literally forgot why I even added those 😅)
+- `==`
+- `<`
+- `<=`
+- `>`
+- `>=`
+- `!=`
+- `.select([])`
+- `.exclude([])`
+
+`select` checks if a value is in a list, `exclude` checks if a value is not in a list.
 
 <br>
 
 You can also combine those queries:
+
 ```python
 packets = parser.parse("demofile.dmo")
 shotgun_shots = (
     packet_list.where(Packet.type() == N_SHOTFX)
-    .select()
     .where(Packet.variable("gunselect") == GUN_SG)
-    .select()
     .where(Packet.cn() == 1)
     .select()
 )
@@ -135,11 +149,12 @@ print(shotgun_shots)
 
 This query will find all the shots performed with shotgun by a client with cn 1
 
-Finally you can get the first or the last packet in a query by replacing ``.select()`` with ``.first()`` or ``.last()``. This helps the performance a little when you know that there should be only one result. If there are no packets left it will return ``None``.
+Finally you can get the first or the last packet in a query by replacing `.select()` with `.first()` or `.last()`. This helps the performance a little when you know that there should be only one result. If there are no packets left it will return `None`.
 
 # Examples
 
 Getting the map, mode and players in a demo:
+
 ```python
 from sauerbraten_demo_parser import DemoParser, Packet
 from sauerbraten_demo_parser.sauerconsts import *
@@ -159,7 +174,6 @@ map = mm_info.args["map"]
 # include the clients that were initially on the server
 player_packets = (
     packet_list.where(Packet.type() == N_INITCLIENT)
-    .select()
     .where(Packet.time() == 0)
     .select()
 )
@@ -178,10 +192,11 @@ for player in player_packets:
 print(f"Map: {map}, Mode: {mode}")
 print(players)
 ```
+
 <br>
 
-
 Getting a list of death spots of a player with cn 1:
+
 ```python
 from sauerbraten_demo_parser import DemoParser, Packet
 from sauerbraten_demo_parser.sauerconsts import *
@@ -196,7 +211,6 @@ cn = 1
 
 pos_packets = (
     packet_list.where(Packet.type() == N_POS)
-    .select()
     .where(Packet.cn() == cn)
     .select()
 )
@@ -204,7 +218,6 @@ pos_packets = (
 # vcn stands for victim cn aka the client who died and not the client who fragged
 died_packets = (
     packet_list.where(Packet.type() == N_DIED)
-    .select()
     .where(Packet.variable("vcn") == cn)
     .select()
 )
@@ -225,6 +238,7 @@ Note that we pre-parse N_POS packets and N_DIED packets instead of doing that in
 <br>
 
 Getting all the 120 rocket hits:
+
 ```python
 from sauerbraten_demo_parser import DemoParser, Packet
 from sauerbraten_demo_parser.sauerconsts import *
@@ -240,7 +254,6 @@ packet_list = parser.parse_raw(demo)
 gun_hits = packet_list.where(Packet.type() == N_DAMAGE).select()
 rocket_explosions = (
     packet_list.where(Packet.type() == N_EXPLODEFX)
-    .select()
     .where(Packet.variable("gun") == GUN_RL)
     .select()
 )
@@ -251,7 +264,6 @@ for explosion in rocket_explosions:
     # Find a hit that has the same timestamp and cn
     current_hit = (
         gun_hits.where(Packet.time() == explosion.timestamp)
-        .select()
         .where(Packet.cn() == explosion.args["cn"])
         .last()
     )
@@ -270,7 +282,8 @@ print(rockets_120)
 ```
 
 # What next?
-To use this tool effectively you need to know how the sauer net protocol works. A good starting point would be looking at the ``sauerconsts.py`` which contains all the network packets (starting with N_) and then trying to get all the packets of one specific type and printing them out to see what information they contain.
+
+To use this tool effectively you need to know how the sauer net protocol works. A good starting point would be looking at the `sauerconsts.py` which contains all the network packets (starting with N\_) and then trying to get all the packets of one specific type and printing them out to see what information they contain.
 <br>
 <br>
 As for the project I'd like to rewrite it in C or Rust eventually to improve performance as well as adding more helper functions and features.

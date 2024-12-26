@@ -76,9 +76,9 @@ def packet_dict(packet) -> dict:
 
     res = {}
 
-    if packet.type == N_DEMOPACKET:
+    if packet._type == N_DEMOPACKET:
         pass
-    elif packet.type == N_SERVINFO:
+    elif packet._type == N_SERVINFO:
         res = {
             "mycn": args[0],
             "prot": args[1],
@@ -87,49 +87,49 @@ def packet_dict(packet) -> dict:
             "servinfo": args[4],
             "servauth": args[5],
         }
-    elif packet.type == N_WELCOME:
+    elif packet._type == N_WELCOME:
         pass
-    elif packet.type == N_PAUSEGAME:
+    elif packet._type == N_PAUSEGAME:
         res = {"val": args[0], "cn": args[1]}
-    elif packet.type == N_GAMESPEED:
+    elif packet._type == N_GAMESPEED:
         res = {"val": args[0], "cn": args[1]}
-    elif packet.type == N_CLIENT:
+    elif packet._type == N_CLIENT:
         res = {
             "cn": args[0],
             "length": args[1],
             "buff": args[2].decode("latin1"),
         }
-    elif packet.type == N_SOUND:
+    elif packet._type == N_SOUND:
         res = {"cn": args[0], "val": args[1]}
-    elif packet.type == N_TEXT:
+    elif packet._type == N_TEXT:
         res = {"cn": args[0], "text": args[1]}
-    elif packet.type == N_SAYTEAM:
+    elif packet._type == N_SAYTEAM:
         res = {"cn": args[0], "text": args[1]}
-    elif packet.type == N_MAPCHANGE:
+    elif packet._type == N_MAPCHANGE:
         res = {"map": args[0], "mode": args[1], "spawnitems": args[2]}
-    elif packet.type == N_FORCEDEATH:
+    elif packet._type == N_FORCEDEATH:
         res = {"cn": args[0]}
-    elif packet.type == N_ITEMLIST:
+    elif packet._type == N_ITEMLIST:
         ents = []
 
         for i in range(int((len(args) - 1) / 2)):
             ents.append((args[i * 2], args[i * 2 + 1]))
 
         res = {"ents": ents}
-    elif packet.type == N_INITCLIENT:
+    elif packet._type == N_INITCLIENT:
         res = {
             "cn": args[0],
             "name": args[1],
             "team": args[2],
             "model": args[3],
         }
-    elif packet.type == N_SWITCHNAME:
+    elif packet._type == N_SWITCHNAME:
         res = {"cn": args[0], "name": args[1]}
-    elif packet.type == N_SWITCHMODEL:
+    elif packet._type == N_SWITCHMODEL:
         res = {"cn": args[0], "model": args[1]}
-    elif packet.type == N_CDIS:
+    elif packet._type == N_CDIS:
         res = {"cn": args[0]}
-    elif packet.type == N_SPAWN:
+    elif packet._type == N_SPAWN:
         res = {
             "cn": args[0],
             "lifesequence": args[1],
@@ -147,7 +147,7 @@ def packet_dict(packet) -> dict:
                 "PISTOL": args[12],
             },
         }
-    elif packet.type == N_SPAWNSTATE:
+    elif packet._type == N_SPAWNSTATE:
         res = {
             "cn": args[0],
             "lifesequence": args[1],
@@ -165,7 +165,7 @@ def packet_dict(packet) -> dict:
                 "PISTOL": args[12],
             },
         }
-    elif packet.type == N_SHOTFX:
+    elif packet._type == N_SHOTFX:
         res = {
             "cn": args[0],
             "gunselect": args[1],
@@ -177,9 +177,9 @@ def packet_dict(packet) -> dict:
             },
             "to": {"x": args[6] / DMF, "y": args[7] / DMF, "z": args[8] / DMF},
         }
-    elif packet.type == N_EXPLODEFX:
+    elif packet._type == N_EXPLODEFX:
         res = {"cn": args[0], "gun": args[1], "id": args[2]}
-    elif packet.type == N_DAMAGE:
+    elif packet._type == N_DAMAGE:
         res = {
             "tcn": args[0],
             "acn": args[1],
@@ -187,31 +187,31 @@ def packet_dict(packet) -> dict:
             "armour": args[3],
             "health": args[4],
         }
-    elif packet.type == N_HITPUSH:
+    elif packet._type == N_HITPUSH:
         res = {
             "cn": args[0],
             "gun": args[1],
             "damage": args[2],
             "dir": {"x": args[3] / DMF, "y": args[4] / DMF, "z": args[5] / DMF},
         }
-    elif packet.type == N_DIED:
+    elif packet._type == N_DIED:
         res = {
             "vcn": args[0],
             "acn": args[1],
             "frags": args[2],
             "tfrags": args[3],
         }
-    elif packet.type == N_TEAMINFO:
+    elif packet._type == N_TEAMINFO:
         res = {}
 
         for i in range(int(len(args) / 2)):
             res[args[i * 2]] = args[i * 2 + 1]
 
-    elif packet.type == N_GUNSELECT:
+    elif packet._type == N_GUNSELECT:
         res = {"cn": args[0], "gun": args[1]}
-    elif packet.type == N_TAUNT:
+    elif packet._type == N_TAUNT:
         res = {"cn": args[0]}
-    elif packet.type == N_RESUME:
+    elif packet._type == N_RESUME:
         res = {}
 
         len_ = 18
@@ -239,18 +239,18 @@ def packet_dict(packet) -> dict:
                 },
             }
 
-    elif packet.type == N_ITEMSPAWN:
+    elif packet._type == N_ITEMSPAWN:
         res = {"entid": args[0]}
-    elif packet.type == N_ITEMACC:
+    elif packet._type == N_ITEMACC:
         res = {"entid": args[0], "cn": args[1]}
-    elif packet.type == N_CLIPBOARD:
+    elif packet._type == N_CLIPBOARD:
         res = {
             "cn": args[0],
             "unpacklen": args[1],
             "packlen": args[2],
             "buff": args[3].decode("latin1"),
         }
-    elif packet.type == N_UNDO or packet.type == N_REDO:
+    elif packet._type == N_UNDO or packet._type == N_REDO:
         res = {
             "cn": args[0],
             "unpacklen": args[1],
@@ -258,16 +258,16 @@ def packet_dict(packet) -> dict:
             "buff": args[3].decode("latin1"),
         }
     elif (
-        packet.type == N_EDITF
-        or packet.type == N_EDITT
-        or packet.type == N_EDITM
-        or packet.type == N_FLIP
-        or packet.type == N_COPY
-        or packet.type == N_PASTE
-        or packet.type == N_ROTATE
-        or packet.type == N_REPLACE
-        or packet.type == N_DELCUBE
-        or packet.type == N_EDITVSLOT
+        packet._type == N_EDITF
+        or packet._type == N_EDITT
+        or packet._type == N_EDITM
+        or packet._type == N_FLIP
+        or packet._type == N_COPY
+        or packet._type == N_PASTE
+        or packet._type == N_ROTATE
+        or packet._type == N_REPLACE
+        or packet._type == N_DELCUBE
+        or packet._type == N_EDITVSLOT
     ):
 
         res = {
@@ -293,34 +293,34 @@ def packet_dict(packet) -> dict:
             },
         }
 
-        if packet.type == N_EDITF:
+        if packet._type == N_EDITF:
             res["dir"] = args[14]
             res["mode"] = args[15]
 
-        if packet.type == N_EDITT:
+        if packet._type == N_EDITT:
             res["tex"] = args[14]
             res["allfaces"] = args[15]
 
-        if packet.type == N_EDITM:
+        if packet._type == N_EDITM:
             res["mat"] = args[14]
             res["filter"] = args[15]
 
-        if packet.type == N_ROTATE:
+        if packet._type == N_ROTATE:
             res["dir"] = args[14]
 
-        if packet.type == N_REPLACE:
+        if packet._type == N_REPLACE:
             res["oldtex"] = args[14]
             res["newtex"] = args[15]
             res["insel"] = args[16]
 
-        if packet.type == N_EDITVSLOT:
+        if packet._type == N_EDITVSLOT:
             res["delta"] = args[14]
             res["allfaces"] = args[15]
 
-    elif packet.type == N_REMIP:
+    elif packet._type == N_REMIP:
         res = {"cn": args[0]}
 
-    elif packet.type == N_EDITENT:
+    elif packet._type == N_EDITENT:
         res = {
             "cn": args[0],
             "entid": args[1],
@@ -335,22 +335,22 @@ def packet_dict(packet) -> dict:
             "attr5": args[10],
         }
 
-    elif packet.type == N_EDITVAR:
+    elif packet._type == N_EDITVAR:
         res = {"cn": args[0], "type": args[1], "name": args[2], "val": args[3]}
 
-    elif packet.type == N_PONG:
+    elif packet._type == N_PONG:
         res = {"ping": args[0]}
 
-    elif packet.type == N_CLIENTPING:
+    elif packet._type == N_CLIENTPING:
         res = {"cn": args[0], "ping": args[1]}
 
-    elif packet.type == N_TIMEUP:
+    elif packet._type == N_TIMEUP:
         res = {"secs": args[0]}
 
-    elif packet.type == N_SERVMSG:
+    elif packet._type == N_SERVMSG:
         res = {"msg": args[0]}
 
-    elif packet.type == N_SENDDEMOLIST:
+    elif packet._type == N_SENDDEMOLIST:
         demos = []
 
         for i in range(args[0]):
@@ -358,28 +358,28 @@ def packet_dict(packet) -> dict:
 
         res = {"numdemos": args[0], "demos": demos}
 
-    elif packet.type == N_DEMOPLAYBACK:
+    elif packet._type == N_DEMOPLAYBACK:
         res = {"on": args[0], "cn": args[1]}
 
-    elif packet.type == N_CURRENTMASTER:
+    elif packet._type == N_CURRENTMASTER:
         res = {"mastermode": args[0], "clients": {}}
 
         for i in range(int(len(args) / 2) - 2):
             res["clients"][args[i * 2 + 1]] = args[(i + 1) * 2]
 
-    elif packet.type == N_MASTERMODE:
+    elif packet._type == N_MASTERMODE:
         res = {"mastermode": args[0]}
 
-    elif packet.type == N_EDITMODE:
+    elif packet._type == N_EDITMODE:
         res = {"cn": args[0], "val": args[1]}
 
-    elif packet.type == N_SPECTATOR:
+    elif packet._type == N_SPECTATOR:
         res = {"cn": args[0], "val": args[1]}
 
-    elif packet.type == N_SETTEAM:
+    elif packet._type == N_SETTEAM:
         res = {"cn": args[0], "team": args[1], "reason": args[2]}
 
-    elif packet.type == N_BASEINFO:
+    elif packet._type == N_BASEINFO:
         res = {
             "base": args[0],
             "owner": args[1],
@@ -388,7 +388,7 @@ def packet_dict(packet) -> dict:
             "ammo": args[4],
         }
 
-    elif packet.type == N_BASEREGEN:
+    elif packet._type == N_BASEREGEN:
         res = {
             "cn": args[0],
             "health": args[1],
@@ -397,7 +397,7 @@ def packet_dict(packet) -> dict:
             "ammo": args[4],
         }
 
-    elif packet.type == N_BASES:
+    elif packet._type == N_BASES:
         res = {"numbases": args[0], "bases": []}
 
         len_ = 5
@@ -413,13 +413,13 @@ def packet_dict(packet) -> dict:
 
             res["bases"].append(base)
 
-    elif packet.type == N_BASESCORE:
+    elif packet._type == N_BASESCORE:
         res = {"base": args[0], "team": args[1], "total": args[2]}
 
-    elif packet.type == N_REPAMMO:
+    elif packet._type == N_REPAMMO:
         res = {"cn": args[0], "ammotype": args[1]}
 
-    elif packet.type == N_INITFLAGS:
+    elif packet._type == N_INITFLAGS:
         res = {"scores": [args[0], args[1]], "numflags": args[2], "flags": []}
 
         offset = 3
@@ -464,7 +464,7 @@ def packet_dict(packet) -> dict:
 
             res["flags"].append(flag)
 
-    elif packet.type == N_DROPFLAG:
+    elif packet._type == N_DROPFLAG:
         res = {
             "cn": args[0],
             "flag": args[1],
@@ -476,7 +476,7 @@ def packet_dict(packet) -> dict:
             },
         }
 
-    elif packet.type == N_SCOREFLAG:
+    elif packet._type == N_SCOREFLAG:
         res = {
             "cn": args[0],
             "relayflag": args[1],
@@ -489,13 +489,13 @@ def packet_dict(packet) -> dict:
             "oflags": args[8],
         }
 
-    elif packet.type == N_RETURNFLAG:
+    elif packet._type == N_RETURNFLAG:
         res = {"cn": args[0], "flag": args[1], "version": args[2]}
 
-    elif packet.type == N_TAKEFLAG:
+    elif packet._type == N_TAKEFLAG:
         res = {"cn": args[0], "flag": args[1], "version": args[2]}
 
-    elif packet.type == N_RESETFLAG:
+    elif packet._type == N_RESETFLAG:
         res = {
             "flag": args[0],
             "version": args[1],
@@ -504,10 +504,10 @@ def packet_dict(packet) -> dict:
             "score": args[4],
         }
 
-    elif packet.type == N_INVISFLAG:
+    elif packet._type == N_INVISFLAG:
         res = {"flag": args[0], "invis": args[1]}
 
-    elif packet.type == N_INITTOKENS:
+    elif packet._type == N_INITTOKENS:
         res = {
             "scores": [args[0], args[1]],
             "numtokens": args[2],
@@ -538,13 +538,13 @@ def packet_dict(packet) -> dict:
                 {"cn": args[offset + i * 2], "tokens": args[offset + i * 2 + 1]}
             )
 
-    elif packet.type == N_TAKETOKEN:
+    elif packet._type == N_TAKETOKEN:
         res = {"cn": args[0], "id": args[1], "total": args[2]}
 
-    elif packet.type == N_EXPIRETOKENS:
+    elif packet._type == N_EXPIRETOKENS:
         res = {"tokens": args}
 
-    elif packet.type == N_DROPTOKENS:
+    elif packet._type == N_DROPTOKENS:
         res = {
             "cn": args[0],
             "droploc": {
@@ -566,7 +566,7 @@ def packet_dict(packet) -> dict:
                 }
             )
 
-    elif packet.type == N_STEALTOKENS:
+    elif packet._type == N_STEALTOKENS:
         res = {
             "cn": args[0],
             "team": args[1],
@@ -588,7 +588,7 @@ def packet_dict(packet) -> dict:
                 {"id": args[offset + i * 2], "yaw": args[offset + i * 2 + 1]}
             )
 
-    elif packet.type == N_DEPOSITTOKENS:
+    elif packet._type == N_DEPOSITTOKENS:
         res = {
             "cn": args[0],
             "base": args[1],
@@ -598,19 +598,19 @@ def packet_dict(packet) -> dict:
             "flags": args[5],
         }
 
-    elif packet.type == N_ANNOUNCE:
+    elif packet._type == N_ANNOUNCE:
         res = {"type": args[0]}
 
-    elif packet.type == N_NEWMAP:
+    elif packet._type == N_NEWMAP:
         res = {"cn": args[0], "size": args[1]}
 
-    elif packet.type == N_REQAUTH:
+    elif packet._type == N_REQAUTH:
         res = {"authdomain": args[0]}
 
-    elif packet.type == N_AUTHCHAL:
+    elif packet._type == N_AUTHCHAL:
         res = {"desc": args[0], "id": args[1], "authchallenge": args[2]}
 
-    elif packet.type == N_INITAI:
+    elif packet._type == N_INITAI:
         res = {
             "bn": args[0],
             "on": args[1],
@@ -621,10 +621,10 @@ def packet_dict(packet) -> dict:
             "team": args[6],
         }
 
-    elif packet.type == N_SERVCMD:
+    elif packet._type == N_SERVCMD:
         res = {"command": args[0]}
 
-    elif packet.type == N_POS:
+    elif packet._type == N_POS:
         res = {"cn": args[0], "o": {}}
 
         physstate = args[1]
@@ -742,10 +742,10 @@ def packet_dict(packet) -> dict:
         res["falling"] = falling
         res["physstate"] = physstate
 
-    elif packet.type == N_TELEPORT:
+    elif packet._type == N_TELEPORT:
         res = {"cn": args[0], "tp": args[1], "td": args[2]}
 
-    elif packet.type == N_JUMPPAD:
+    elif packet._type == N_JUMPPAD:
         res = {"cn": args[0], "jp": args[1]}
 
     return res

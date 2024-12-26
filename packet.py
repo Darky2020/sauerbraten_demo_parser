@@ -1,5 +1,6 @@
 from .utils import packet_dict, InvalidVariable, InvalidAction
 from .sauerconsts import packet_names
+from functools import cached_property
 from typing import Any
 
 
@@ -8,8 +9,11 @@ class Packet:
         self._type: int = type
         self.timestamp: int = timestamp
         self.raw_args: list[Any] = args
-        self.args: dict = packet_dict(self)
         self.context: dict | None = context
+
+    @cached_property
+    def args(self):
+        return packet_dict(self)
 
     def __str__(self):
         resp = f"Packet({packet_names[self._type]}, timestamp={self.timestamp}, args={self.args}"
@@ -293,32 +297,42 @@ class PacketListQuery(object):
                 return value not in query["value"]
 
         for packet in self.packet_list:
+            add_packet = True
+
             for query in self.queries:
                 if query["query"] == "type":
-                    if compare(packet._type):
-                        packets.append(packet)
+                    if not compare(packet._type):
+                        add_packet = False
+                        break
 
                 if query["query"] == "time":
-                    if compare(packet.timestamp):
-                        packets.append(packet)
+                    if not compare(packet.timestamp):
+                        add_packet = False
+                        break
 
                 if query["query"] == "cn":
+                    condition = False
+
                     # The client num variable has different names in different
                     # packets so we check for all of them
                     if "cn" in packet.args and compare(packet["cn"]):
-                        packets.append(packet)
+                        condition = True
 
                     elif "mycn" in packet.args and compare(packet["mycn"]):
-                        packets.append(packet)
+                        condition = True
 
                     elif "tcn" in packet.args and compare(packet["tcn"]):
-                        packets.append(packet)
+                        condition = True
 
                     elif "acn" in packet.args and compare(packet["acn"]):
-                        packets.append(packet)
+                        condition = True
 
                     elif "vcn" in packet.args and compare(packet["vcn"]):
-                        packets.append(packet)
+                        condition = True
+
+                    if not condition:
+                        add_packet = False
+                        break
 
                 if query["query"] == "variable":
                     keys = query["variable"].split(".")
@@ -330,7 +344,11 @@ class PacketListQuery(object):
                     if variable is None:
                         continue
 
-                    if compare(variable):
-                        packets.append(packet)
+                    if not compare(variable):
+                        add_packet = False
+                        break
+
+            if add_packet:
+                packets.append(packet)
 
         return PacketList(packets)

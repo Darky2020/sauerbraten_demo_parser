@@ -2,6 +2,7 @@ from .utils import getint, getstr, getuint, getfloat
 from .packet import Packet, PacketList
 from dataclasses import dataclass
 from .sauerconsts import *
+from array import array
 import gzip
 import io
 
@@ -102,42 +103,102 @@ class DemoParser:
 
     def parse_messages(self, _cn, stamp, data, error):
         if error:
-            print(f"error parsing demo: {error}")
+            raise Exception(f"error parsing demo: {error}")
 
         data = io.BytesIO(data)
 
         while data.tell() < data.getbuffer().nbytes:
             packet = getint(data)
 
-            if packet == N_DEMOPACKET:
-                self.add_packet(N_DEMOPACKET, stamp)
+            # Branches are ordered by packet frequency
+            if packet == N_POS:
+                args = array("I", [0] * 30)
 
-            elif packet == N_SERVINFO:
-                self.add_packet(
-                    N_SERVINFO,
-                    stamp,
-                    [
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getstr(data),
-                        getstr(data),
-                    ],
-                )
+                idx = 0
+                args[idx] = getuint(data)  # cn
+                idx += 1
+                args[idx] = int.from_bytes(
+                    data.read(1), byteorder="little"
+                )  # physstate
+                idx += 1
+                args[idx] = getuint(data)  # flags
+                idx += 1
 
-            elif packet == N_WELCOME:
-                self.add_packet(N_WELCOME, stamp)
+                flags = args[2]
 
-            elif packet == N_PAUSEGAME:
-                self.add_packet(
-                    N_PAUSEGAME, stamp, [getint(data), getint(data)]
-                )
+                for k in range(3):
+                    n = int.from_bytes(data.read(1), byteorder="little")
+                    tmp = int.from_bytes(data.read(1), byteorder="little")
+                    args[idx] = n
+                    idx += 1
+                    args[idx] = tmp
+                    idx += 1
 
-            elif packet == N_GAMESPEED:
-                self.add_packet(
-                    N_GAMESPEED, stamp, [getint(data), getint(data)]
-                )
+                    n |= tmp << 8
+
+                    if flags & (1 << k):
+                        tmp = int.from_bytes(data.read(1), byteorder="little")
+                        args[idx] = tmp
+                        idx += 1
+
+                        n |= tmp << 16
+
+                        if n & 0x800000:
+                            n |= ~0 << 24
+
+                dir = int.from_bytes(data.read(1), byteorder="little")
+                tmp = int.from_bytes(data.read(1), byteorder="little")
+                args[idx] = dir
+                idx += 1
+                args[idx] = tmp
+                idx += 1
+
+                dir |= tmp << 8
+
+                roll = int.from_bytes(data.read(1), byteorder="little")
+                mag = int.from_bytes(data.read(1), byteorder="little")
+                args[idx] = roll
+                idx += 1
+                args[idx] = mag
+                idx += 1
+
+                if flags & (1 << 3):
+                    tmp = int.from_bytes(data.read(1), byteorder="little")
+                    args[idx] = tmp
+                    idx += 1
+                    mag |= tmp << 8
+
+                dir = int.from_bytes(data.read(1), byteorder="little")
+                tmp = int.from_bytes(data.read(1), byteorder="little")
+                args[idx] = dir
+                idx += 1
+                args[idx] = tmp
+                idx += 1
+
+                dir |= tmp << 8
+
+                if flags & (1 << 4):
+                    mag = int.from_bytes(data.read(1), byteorder="little")
+                    args[idx] = mag
+                    idx += 1
+
+                    if flags & (1 << 5):
+                        tmp = int.from_bytes(data.read(1), byteorder="little")
+                        args[idx] = tmp
+                        idx += 1
+                        mag |= tmp << 8
+
+                    if flags & (1 << 6):
+                        dir = int.from_bytes(data.read(1), byteorder="little")
+                        tmp = int.from_bytes(data.read(1), byteorder="little")
+                        args[idx] = dir
+                        idx += 1
+                        args[idx] = tmp
+                        idx += 1
+
+                        dir |= tmp << 8
+
+                self.add_packet(N_POS, stamp, args[:idx])
 
             elif packet == N_CLIENT:
                 cn = getint(data)
@@ -154,65 +215,8 @@ class DemoParser:
                         error,
                     )
 
-            elif packet == N_SOUND:
-                self.add_packet(N_SOUND, stamp, [_cn, getint(data)])
-
-            elif packet == N_TEXT:
-                self.add_packet(N_TEXT, stamp, [_cn, getstr(data)])
-
-            elif packet == N_SAYTEAM:
-                self.add_packet(N_SAYTEAM, stamp, [getint(data), getstr(data)])
-
-            elif packet == N_MAPCHANGE:
-                args = [getstr(data)]
-
-                mode = getint(data)
-                args.append(mode)
-                args.append(getint(data))
-
-                self.current_mode = mode
-
-                self.add_packet(N_MAPCHANGE, stamp, args)
-
-            elif packet == N_FORCEDEATH:
-                self.add_packet(N_FORCEDEATH, stamp, [getint(data)])
-
-            elif packet == N_ITEMLIST:
-                args = []
-                while data.tell() < data.getbuffer().nbytes:
-                    n = getint(data)
-                    args.append(n)
-
-                    if n < 0:
-                        break
-
-                    args.append(getint(data))
-
-                self.add_packet(N_ITEMLIST, stamp, args)
-
-            elif packet == N_INITCLIENT:
-                self.add_packet(
-                    N_INITCLIENT,
-                    stamp,
-                    [getint(data), getstr(data), getstr(data), getint(data)],
-                )
-
-            elif packet == N_SWITCHNAME:
-                self.add_packet(N_SWITCHNAME, stamp, [_cn, getstr(data)])
-
-            elif packet == N_SWITCHMODEL:
-                self.add_packet(N_SWITCHMODEL, stamp, [_cn, getint(data)])
-
-            elif packet == N_CDIS:
-                self.add_packet(N_CDIS, stamp, [getint(data)])
-
-            elif packet == N_SPAWN:
-                self.add_packet(N_SPAWN, stamp, [_cn] + self.parse_state(data))
-
-            elif packet == N_SPAWNSTATE:
-                self.add_packet(
-                    N_SPAWNSTATE, stamp, [getint(data)] + self.parse_state(data)
-                )
+            elif packet == N_CLIENTPING:
+                self.add_packet(N_CLIENTPING, stamp, [_cn, getint(data)])
 
             elif packet == N_SHOTFX:
                 self.add_packet(
@@ -231,12 +235,11 @@ class DemoParser:
                     ],
                 )
 
-            elif packet == N_EXPLODEFX:
-                self.add_packet(
-                    N_EXPLODEFX,
-                    stamp,
-                    [getint(data), getint(data), getint(data)],
-                )
+            elif packet == N_SOUND:
+                self.add_packet(N_SOUND, stamp, [_cn, getint(data)])
+
+            elif packet == N_GUNSELECT:
+                self.add_packet(N_GUNSELECT, stamp, [_cn, getint(data)])
 
             elif packet == N_DAMAGE:
                 self.add_packet(
@@ -249,6 +252,42 @@ class DemoParser:
                         getint(data),
                         getint(data),
                     ],
+                )
+
+            elif packet == N_EXPLODEFX:
+                self.add_packet(
+                    N_EXPLODEFX,
+                    stamp,
+                    [getint(data), getint(data), getint(data)],
+                )
+
+            elif packet == N_EDITENT:
+                self.add_packet(
+                    N_EDITENT,
+                    stamp,
+                    [
+                        _cn,
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                    ],
+                )
+
+            elif packet == N_SPAWN:
+                self.add_packet(N_SPAWN, stamp, [_cn] + self.parse_state(data))
+
+            elif packet == N_DIED:
+                self.add_packet(
+                    N_DIED,
+                    stamp,
+                    [getint(data), getint(data), getint(data), getint(data)],
                 )
 
             elif packet == N_HITPUSH:
@@ -265,12 +304,198 @@ class DemoParser:
                     ],
                 )
 
-            elif packet == N_DIED:
+            elif packet == N_BASEINFO:
                 self.add_packet(
-                    N_DIED,
+                    N_BASEINFO,
                     stamp,
-                    [getint(data), getint(data), getint(data), getint(data)],
+                    [
+                        getint(data),
+                        getstr(data),
+                        getstr(data),
+                        getint(data),
+                        getint(data),
+                    ],
                 )
+
+            elif packet == N_BASEREGEN:
+                self.add_packet(
+                    N_BASEREGEN,
+                    stamp,
+                    [
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                    ],
+                )
+
+            elif packet == N_ITEMACC:
+                self.add_packet(N_ITEMACC, stamp, [getint(data), getint(data)])
+
+            elif packet == N_ITEMSPAWN:
+                self.add_packet(N_ITEMSPAWN, stamp, [getint(data)])
+
+            elif packet == N_TAKEFLAG:
+                self.add_packet(
+                    N_TAKEFLAG,
+                    stamp,
+                    [getint(data), getint(data), getint(data)],
+                )
+
+            elif packet == N_TELEPORT:
+                self.add_packet(
+                    N_TELEPORT,
+                    stamp,
+                    [getint(data), getint(data), getint(data)],
+                )
+
+            elif packet == N_BASESCORE:
+                self.add_packet(
+                    N_BASESCORE,
+                    stamp,
+                    [getint(data), getstr(data), getint(data)],
+                )
+
+            elif packet == N_DROPFLAG:
+                self.add_packet(
+                    N_DROPFLAG,
+                    stamp,
+                    [
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                    ],
+                )
+
+            elif packet == N_JUMPPAD:
+                self.add_packet(N_JUMPPAD, stamp, [getint(data), getint(data)])
+
+            elif packet == N_TEXT:
+                self.add_packet(N_TEXT, stamp, [_cn, getstr(data)])
+
+            elif packet == N_SERVMSG:
+                self.add_packet(N_SERVMSG, stamp, [getstr(data)])
+
+            elif packet == N_SWITCHMODEL:
+                self.add_packet(N_SWITCHMODEL, stamp, [_cn, getint(data)])
+
+            elif packet == N_INITCLIENT:
+                self.add_packet(
+                    N_INITCLIENT,
+                    stamp,
+                    [getint(data), getstr(data), getstr(data), getint(data)],
+                )
+
+            elif packet == N_RETURNFLAG:
+                self.add_packet(
+                    N_RETURNFLAG,
+                    stamp,
+                    [getint(data), getint(data), getint(data)],
+                )
+
+            elif packet == N_SCOREFLAG:
+                self.add_packet(
+                    N_SCOREFLAG,
+                    stamp,
+                    [
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                    ],
+                )
+
+            elif packet == N_RESUME:
+                args = []
+
+                while True:
+                    cn = getint(data)
+                    args.append(cn)
+
+                    if not data.tell() < data.getbuffer().nbytes or cn < 0:
+                        break
+
+                    args += self.parse_state(data, resume=True)
+
+                self.add_packet(N_RESUME, stamp, args)
+
+            elif packet == N_SPECTATOR:
+                self.add_packet(
+                    N_SPECTATOR, stamp, [getint(data), getint(data)]
+                )
+
+            elif packet == N_CDIS:
+                self.add_packet(N_CDIS, stamp, [getint(data)])
+
+            elif packet == N_TIMEUP:
+                self.add_packet(N_TIMEUP, stamp, [getint(data)])
+
+            elif packet == N_ANNOUNCE:
+                self.add_packet(N_ANNOUNCE, stamp, [getint(data)])
+
+            elif packet == N_CURRENTMASTER:
+                args = [getint(data)]
+
+                while True:
+                    mn = getint(data)
+
+                    args.append(mn)
+
+                    if mn < 0 or not data.tell() < data.getbuffer().nbytes:
+                        break
+
+                    args.append(getint(data))
+
+                self.add_packet(N_CURRENTMASTER, stamp, args)
+
+            elif packet == N_RESETFLAG:
+                self.add_packet(
+                    N_RESETFLAG,
+                    stamp,
+                    [
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                    ],
+                )
+
+            elif packet == N_WELCOME:
+                self.add_packet(N_WELCOME, stamp)
+
+            elif packet == N_MAPCHANGE:
+                args = [getstr(data)]
+
+                mode = getint(data)
+                args.append(mode)
+                args.append(getint(data))
+
+                self.current_mode = mode
+
+                self.add_packet(N_MAPCHANGE, stamp, args)
+
+            elif packet == N_ITEMLIST:
+                args = []
+                while data.tell() < data.getbuffer().nbytes:
+                    n = getint(data)
+                    args.append(n)
+
+                    if n < 0:
+                        break
+
+                    args.append(getint(data))
+
+                self.add_packet(N_ITEMLIST, stamp, args)
 
             elif packet == N_TEAMINFO:
                 args = []
@@ -289,31 +514,129 @@ class DemoParser:
 
                 self.add_packet(N_TEAMINFO, stamp, args)
 
-            elif packet == N_GUNSELECT:
-                self.add_packet(N_GUNSELECT, stamp, [_cn, getint(data)])
+            elif packet == N_INITFLAGS:
+                args = [getint(data), getint(data)]
+
+                numflags = getint(data)
+                args.append(numflags)
+
+                for _ in range(numflags):
+                    version = getint(data)
+                    spawn = getint(data)
+                    owner = getint(data)
+                    invis = getint(data)
+
+                    args.append(version)
+                    args.append(spawn)
+                    args.append(owner)
+                    args.append(invis)
+
+                    if owner < 0:
+                        dropped = getint(data)
+                        args.append(dropped)
+
+                        if dropped:
+                            for _ in range(3):
+                                args.append(getint(data))
+
+                    if self.current_mode in [
+                        m_hold,
+                        m_insta_hold,
+                        m_effic_hold,
+                    ]:
+                        holdteam = getint(data)
+                        args.append(holdteam)
+
+                        if holdteam >= 0:
+                            args.append(getint(data))
+
+                self.add_packet(
+                    N_INITFLAGS,
+                    stamp,
+                    args,
+                    {"current_mode": self.current_mode},
+                )
+
+            elif packet == N_PAUSEGAME:
+                self.add_packet(
+                    N_PAUSEGAME, stamp, [getint(data), getint(data)]
+                )
+
+            elif packet == N_SETTEAM:
+                self.add_packet(
+                    N_SETTEAM, stamp, [getint(data), getstr(data), getint(data)]
+                )
 
             elif packet == N_TAUNT:
                 self.add_packet(N_TAUNT, stamp, [_cn])
 
-            elif packet == N_RESUME:
+            elif packet == N_BASES:
                 args = []
 
-                while True:
-                    cn = getint(data)
-                    args.append(cn)
+                numbases = getint(data)
+                args.append(numbases)
 
-                    if not data.tell() < data.getbuffer().nbytes or cn < 0:
-                        break
+                for _ in range(numbases):
+                    args.append(getint(data))
 
-                    args += self.parse_state(data, resume=True)
+                    args.append(getstr(data))
+                    args.append(getstr(data))
 
-                self.add_packet(N_RESUME, stamp, args)
+                    args.append(getint(data))
+                    args.append(getint(data))
 
-            elif packet == N_ITEMSPAWN:
-                self.add_packet(N_ITEMSPAWN, stamp, [getint(data)])
+                self.add_packet(N_BASES, stamp, args)
 
-            elif packet == N_ITEMACC:
-                self.add_packet(N_ITEMACC, stamp, [getint(data), getint(data)])
+            elif packet == N_INITAI:
+                self.add_packet(
+                    N_INITAI,
+                    stamp,
+                    [
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getstr(data),
+                        getstr(data),
+                    ],
+                )
+
+            elif packet == N_SWITCHNAME:
+                self.add_packet(N_SWITCHNAME, stamp, [_cn, getstr(data)])
+
+            elif packet == N_DEMOPACKET:
+                self.add_packet(N_DEMOPACKET, stamp)
+
+            elif packet == N_SERVINFO:
+                self.add_packet(
+                    N_SERVINFO,
+                    stamp,
+                    [
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getint(data),
+                        getstr(data),
+                        getstr(data),
+                    ],
+                )
+
+            elif packet == N_GAMESPEED:
+                self.add_packet(
+                    N_GAMESPEED, stamp, [getint(data), getint(data)]
+                )
+
+            elif packet == N_SAYTEAM:
+                self.add_packet(N_SAYTEAM, stamp, [getint(data), getstr(data)])
+
+            elif packet == N_FORCEDEATH:
+                self.add_packet(N_FORCEDEATH, stamp, [getint(data)])
+
+            elif packet == N_SPAWNSTATE:
+                self.add_packet(
+                    N_SPAWNSTATE, stamp, [getint(data)] + self.parse_state(data)
+                )
 
             elif packet == N_CLIPBOARD:
                 self.add_packet(
@@ -382,25 +705,6 @@ class DemoParser:
             elif packet == N_REMIP:
                 self.add_packet(N_REMIP, stamp, [_cn])
 
-            elif packet == N_EDITENT:
-                self.add_packet(
-                    N_EDITENT,
-                    stamp,
-                    [
-                        _cn,
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                    ],
-                )
-
             elif packet == N_EDITVAR:
                 args = [_cn]
 
@@ -423,15 +727,6 @@ class DemoParser:
             elif packet == N_PONG:
                 self.add_packet(N_PONG, stamp, [getint(data)])
 
-            elif packet == N_CLIENTPING:
-                self.add_packet(N_CLIENTPING, stamp, [_cn, getint(data)])
-
-            elif packet == N_TIMEUP:
-                self.add_packet(N_TIMEUP, stamp, [getint(data)])
-
-            elif packet == N_SERVMSG:
-                self.add_packet(N_SERVMSG, stamp, [getstr(data)])
-
             elif packet == N_SENDDEMOLIST:
                 args = []
 
@@ -451,190 +746,14 @@ class DemoParser:
                     N_DEMOPLAYBACK, stamp, [getint(data), getint(data)]
                 )
 
-            elif packet == N_CURRENTMASTER:
-                args = [getint(data)]
-
-                while True:
-                    mn = getint(data)
-
-                    args.append(mn)
-
-                    if mn < 0 or not data.tell() < data.getbuffer().nbytes:
-                        break
-
-                    args.append(getint(data))
-
-                self.add_packet(N_CURRENTMASTER, stamp, args)
-
             elif packet == N_MASTERMODE:
                 self.add_packet(N_MASTERMODE, stamp, [getint(data)])
 
             elif packet == N_EDITMODE:
                 self.add_packet(N_EDITMODE, stamp, [_cn, getint(data)])
 
-            elif packet == N_SPECTATOR:
-                self.add_packet(
-                    N_SPECTATOR, stamp, [getint(data), getint(data)]
-                )
-
-            elif packet == N_SETTEAM:
-                self.add_packet(
-                    N_SETTEAM, stamp, [getint(data), getstr(data), getint(data)]
-                )
-
-            elif packet == N_BASEINFO:
-                self.add_packet(
-                    N_BASEINFO,
-                    stamp,
-                    [
-                        getint(data),
-                        getstr(data),
-                        getstr(data),
-                        getint(data),
-                        getint(data),
-                    ],
-                )
-
-            elif packet == N_BASEREGEN:
-                self.add_packet(
-                    N_BASEREGEN,
-                    stamp,
-                    [
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                    ],
-                )
-
-            elif packet == N_BASES:
-                args = []
-
-                numbases = getint(data)
-                args.append(numbases)
-
-                for _ in range(numbases):
-                    args.append(getint(data))
-
-                    args.append(getstr(data))
-                    args.append(getstr(data))
-
-                    args.append(getint(data))
-                    args.append(getint(data))
-
-                self.add_packet(N_BASES, stamp, args)
-
-            elif packet == N_BASESCORE:
-                self.add_packet(
-                    N_BASESCORE,
-                    stamp,
-                    [getint(data), getstr(data), getint(data)],
-                )
-
             elif packet == N_REPAMMO:
                 self.add_packet(N_REPAMMO, stamp, [getint(data), getint(data)])
-
-            elif packet == N_INITFLAGS:
-                args = [getint(data), getint(data)]
-
-                numflags = getint(data)
-                args.append(numflags)
-
-                for _ in range(numflags):
-                    version = getint(data)
-                    spawn = getint(data)
-                    owner = getint(data)
-                    invis = getint(data)
-
-                    args.append(version)
-                    args.append(spawn)
-                    args.append(owner)
-                    args.append(invis)
-
-                    if owner < 0:
-                        dropped = getint(data)
-                        args.append(dropped)
-
-                        if dropped:
-                            for _ in range(3):
-                                args.append(getint(data))
-
-                    if self.current_mode in [
-                        m_hold,
-                        m_insta_hold,
-                        m_effic_hold,
-                    ]:
-                        holdteam = getint(data)
-                        args.append(holdteam)
-
-                        if holdteam >= 0:
-                            args.append(getint(data))
-
-                self.add_packet(
-                    N_INITFLAGS,
-                    stamp,
-                    args,
-                    {"current_mode": self.current_mode},
-                )
-
-            elif packet == N_DROPFLAG:
-                self.add_packet(
-                    N_DROPFLAG,
-                    stamp,
-                    [
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                    ],
-                )
-
-            elif packet == N_SCOREFLAG:
-                self.add_packet(
-                    N_SCOREFLAG,
-                    stamp,
-                    [
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                    ],
-                )
-
-            elif packet == N_RETURNFLAG:
-                self.add_packet(
-                    N_RETURNFLAG,
-                    stamp,
-                    [getint(data), getint(data), getint(data)],
-                )
-
-            elif packet == N_TAKEFLAG:
-                self.add_packet(
-                    N_TAKEFLAG,
-                    stamp,
-                    [getint(data), getint(data), getint(data)],
-                )
-
-            elif packet == N_RESETFLAG:
-                self.add_packet(
-                    N_RESETFLAG,
-                    stamp,
-                    [
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                    ],
-                )
 
             elif packet == N_INVISFLAG:
                 self.add_packet(
@@ -748,9 +867,6 @@ class DemoParser:
                     ],
                 )
 
-            elif packet == N_ANNOUNCE:
-                self.add_packet(N_ANNOUNCE, stamp, [getint(data)])
-
             elif packet == N_NEWMAP:
                 self.add_packet(N_NEWMAP, stamp, [_cn, getint(data)])
 
@@ -764,112 +880,8 @@ class DemoParser:
                     [getstr(data), getint(data), getstr(data)],
                 )
 
-            elif packet == N_INITAI:
-                self.add_packet(
-                    N_INITAI,
-                    stamp,
-                    [
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getint(data),
-                        getstr(data),
-                        getstr(data),
-                    ],
-                )
-
             elif packet == N_SERVCMD:
                 self.add_packet(N_SERVCMD, stamp, [getstr(data)])
-
-            elif packet == N_POS:
-                args = []
-
-                cn = getuint(data)
-                args.append(cn)
-
-                physstate = int.from_bytes(data.read(1), byteorder="little")
-                args.append(physstate)
-
-                flags = getuint(data)
-                args.append(flags)
-
-                for k in range(3):
-                    n = int.from_bytes(data.read(1), byteorder="little")
-                    args.append(n)
-
-                    tmp = int.from_bytes(data.read(1), byteorder="little")
-                    args.append(tmp)
-
-                    n |= tmp << 8
-
-                    if flags & (1 << k):
-                        tmp = int.from_bytes(data.read(1), byteorder="little")
-                        args.append(tmp)
-
-                        n |= tmp << 16
-
-                        if n & 0x800000:
-                            n |= ~0 << 24
-
-                dir = int.from_bytes(data.read(1), byteorder="little")
-                args.append(dir)
-
-                tmp = int.from_bytes(data.read(1), byteorder="little")
-                args.append(tmp)
-
-                dir |= tmp << 8
-
-                roll = int.from_bytes(data.read(1), byteorder="little")
-                args.append(roll)
-
-                mag = int.from_bytes(data.read(1), byteorder="little")
-                args.append(mag)
-
-                if flags & (1 << 3):
-                    tmp = int.from_bytes(data.read(1), byteorder="little")
-                    args.append(tmp)
-
-                    mag |= tmp << 8
-
-                dir = int.from_bytes(data.read(1), byteorder="little")
-                args.append(dir)
-
-                tmp = int.from_bytes(data.read(1), byteorder="little")
-                args.append(tmp)
-
-                dir |= tmp << 8
-
-                if flags & (1 << 4):
-                    mag = int.from_bytes(data.read(1), byteorder="little")
-                    args.append(mag)
-
-                    if flags & (1 << 5):
-                        tmp = int.from_bytes(data.read(1), byteorder="little")
-                        args.append(tmp)
-
-                        mag |= tmp << 8
-
-                    if flags & (1 << 6):
-                        dir = int.from_bytes(data.read(1), byteorder="little")
-                        args.append(dir)
-
-                        tmp = int.from_bytes(data.read(1), byteorder="little")
-                        args.append(tmp)
-
-                        dir |= tmp << 8
-
-                self.add_packet(N_POS, stamp, args)
-
-            elif packet == N_TELEPORT:
-                self.add_packet(
-                    N_TELEPORT,
-                    stamp,
-                    [getint(data), getint(data), getint(data)],
-                )
-
-            elif packet == N_JUMPPAD:
-                self.add_packet(N_JUMPPAD, stamp, [getint(data), getint(data)])
 
             else:
                 error = f"Couldn't read packet: {packet}"
